@@ -660,7 +660,7 @@ function enterApp(){
   document.getElementById('header-date').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
   document.getElementById('admin-tab').style.display='none';
   isAdmin=false;
-  renderOverview();renderCheckinInner();renderCalendar();renderHistory();updateLineUI();
+  renderOverview();renderCheckinInner();renderCalendar();renderHistory();
 }
 function switchIdentity(){
   isAdmin=false;
@@ -1278,7 +1278,7 @@ window.onload = function () {
                 console.log("📥 已從雲端更新資料");
                 
                 // 嘗試觸發畫面重繪
-                const renderFuncs = ['init', 'renderMembers', 'updateLineUI', 'renderRecords'];
+                const renderFuncs = ['init', 'renderMembers', 'renderRecords'];
                 renderFuncs.forEach(funcName => {
                     if (typeof window[funcName] === 'function') window[funcName]();
                 });
