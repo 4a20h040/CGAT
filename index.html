@@ -259,8 +259,7 @@ body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:1
       <button class="user-chip" onclick="switchIdentity()" id="user-chip">
         <span class="uc-emoji" id="uc-emoji"></span>
         <span id="uc-name"></span>
-      </button>
-      <button class="icon-btn" onclick="openNotifyModal()">🔔</button>
+      </button>      
       <button class="icon-btn" onclick="openAdminPin()" title="管理模式">⚙️</button>
     </div>
   </div>
@@ -491,25 +490,6 @@ body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:1
     <div class="pin-err" id="ap-err"></div>
     <div class="modal-btns" style="margin-top:8px">
       <button class="btn-cancel" onclick="closeAdminPin()">取消</button>
-    </div>
-  </div>
-</div>
-<!-- MODAL: Line Notify -->
-<div class="modal-overlay" id="modal-notify">
-  <div class="modal">
-    <h3>🔔 Line Notify</h3>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">設定 Token 後可接收差勤通知與每日報表。</p>
-    <div class="line-status">
-      <div class="line-dot" id="line-dot2"></div>
-      <span id="line-status-text2" style="font-size:12px;color:var(--text2)">尚未連結</span>
-    </div>
-    <div class="form-row">
-      <input class="f-input" id="line-token2" placeholder="Line Notify Token" type="password">
-      <button class="btn-add" onclick="saveLineToken2()">儲存</button>
-    </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal('modal-notify')">關閉</button>
-      <button class="btn-confirm" onclick="sendReport();closeModal('modal-notify')">發送今日報表</button>
     </div>
   </div>
 </div>
