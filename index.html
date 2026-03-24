@@ -4,21 +4,26 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
-  // 1. 貼上您專屬的 Firebase 配置
-const firebaseConfig = { 
-    apiKey: "AIzaSyC9vxLZ6YmqpOc7p5d8HeflRP4oTrPPswo", 
-    authDomain: "cgat-b1547.firebaseapp.com", 
+  // 這裡【不可以】有 import 或 export 字眼
+  const firebaseConfig = {
+    apiKey: "AIzaSyC9vxLZ6YmqpOc7p5d8HeflRP4oTrPPswo",
+    authDomain: "cgat-b1547.firebaseapp.com",
+    databaseURL: "https://cgat-b1547-default-rtdb.asia-southeast1.firebasedatabase.app/",
     projectId: "cgat-b1547",
-    databaseURL: "https://cgat-b1547-default-rtdb.asia-southeast1.firebasedatabase.app/" // 這裡一定要加這行！
-};
+    storageBucket: "cgat-b1547.firebasestorage.app",
+    messagingSenderId: "276584566172",
+    appId: "1:276584566172:web:7bc6edb6a97d2648260c59"
+  };
 
-  // 2. 初始化 Firebase
-  firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
-
-  // 3. 定義全域變數，取代原本的 DB 物件
-  // 我們將在下一步把原本的讀取邏輯改為從 database 讀取
-  console.log("Firebase 初始化成功");
+  // 使用相容模式初始化 (不要寫 export const app = ...)
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  
+  // 定義全域變數 database
+  window.database = firebase.database();
+  
+  console.log("✅ Firebase 核心初始化成功");
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&amp;family=DM+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>:root{
