@@ -533,36 +533,35 @@ function def() {
   };
 }
 
-// 【重要】預先給予初始值，防止 render 時出現 undefined
-window.DB = def(); 
-var DB = window.DB;
+// 使用 var 確保全域唯一性且可改寫，解決 Redefine 錯誤
+var DB = JSON.parse(localStorage.getItem(KEY)) || def();
 
 function save() {
   console.log("💾 執行儲存...");
-  localStorage.setItem(KEY, JSON.stringify(window.DB));
+  // 同步到瀏覽器緩存
+  localStorage.setItem(KEY, JSON.stringify(DB));
+  
+  // 同步到 Firebase 雲端
   if (typeof database !== 'undefined') {
-    database.ref('attendance_data').set(window.DB)
+    database.ref('attendance_data').set(DB)
       .then(() => console.log("✅ 雲端同步成功"))
       .catch(err => console.error("❌ 雲端同步失敗:", err));
   }
 }
 
-// Firebase 監聽器：當資料回來時才更新畫面
+// 監聽 Firebase：當雲端有變動時，自動更新本地 DB 並重畫介面
 if (typeof database !== 'undefined') {
   database.ref('attendance_data').on('value', (snapshot) => {
     const cloudData = snapshot.val();
     if (cloudData && cloudData.members) {
-      console.log("📥 從雲端更新 DB 物件");
-      window.DB = cloudData;
-      DB = window.DB; // 確保全域變數同步
-      
-      // 資料到位後，才觸發畫面渲染
-      if(typeof render === 'function') render();
+      console.log("📥 從雲端更新資料成功");
+      DB = cloudData; 
+      // 確保畫面重新渲染
       if(typeof renderIdentityGrid === 'function') renderIdentityGrid();
+      if(typeof render === 'function') render();
     }
   });
 }
-
 // 建立一個統一更新介面的函式
 function refreshAllUI() {
   if (typeof renderIdentityGrid === 'function') renderIdentityGrid();
@@ -572,12 +571,6 @@ function refreshAllUI() {
   if (typeof render === 'function') render(); 
 }
 
-// 讓全域 DB 變數指向 window.DB
-Object.defineProperty(window, 'DB', {
-  get: function() { return window._DB_INTERNAL; },
-  set: function(val) { window._DB_INTERNAL = val; },
-  configurable: true
-});
 // ════════════════ HELPERS ════════════════
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
