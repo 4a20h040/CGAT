@@ -1248,25 +1248,6 @@ function saveAdminPin(){
   document.getElementById('new-admin-pin').value='';document.getElementById('new-admin-pin2').value='';
   renderAdmin();toast('✅ 管理者 PIN 已更新');
 }
-// ════════════════ LINE NOTIFY ════════════════
-function updateLineUI(){
-  const on=!!DB.lineToken;
-  ['line-dot','line-dot2'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.toggle('on',on);});
-  ['line-status-text','line-status-text2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=on?'已連結 Line Notify':'尚未連結';});
-}
-function saveLineToken(){const t=document.getElementById('line-token-input').value.trim();if(!t){toast('請輸入 Token');return;}DB.lineToken=t;save();document.getElementById('line-token-input').value='';document.getElementById('line-token-input').placeholder='已設定 Token（●●●●●●）';updateLineUI();toast('✅ Line Notify 已設定');}
-function saveLineToken2(){const t=document.getElementById('line-token2').value.trim();if(!t){toast('請輸入 Token');return;}DB.lineToken=t;save();document.getElementById('line-token2').value='';updateLineUI();toast('✅ Line Notify 已設定');}
-function sendLine(msg){if(!DB.lineToken)return;console.log('[Line Notify]',msg);toast('📨 Line 通知已發送（模擬）');}
-function testLine(){if(!DB.lineToken){toast('請先設定 Token');return;}sendLine('【誰有上班】測試通知 ✅');}
-function sendReport(){
-  if(!DB.lineToken){toast('請先設定 Token');return;}
-  const today=todayStr();let msg=`【誰有上班】📋 今日差勤 ${fmtDate(today)}\n`;
-  DB.members.forEach(m=>{const recs=recOnDate(m.id,today);
-    if(recs.length)recs.forEach(r=>{const st=getStatus(r.statusId);msg+=`${m.emoji}${m.name}：${st?st.emoji+st.label:'?'}${r.title?' '+r.title:''}\n`;});
-    else msg+=`${m.emoji}${m.name}：無差勤\n`;});
-  sendLine(msg);
-}
-function openNotifyModal(){updateLineUI();openModal('modal-notify');}
 // ════════════════ INIT ════════════════
 renderIdentityGrid();
 
