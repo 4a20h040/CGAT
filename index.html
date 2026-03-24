@@ -533,58 +533,33 @@ function def() {
   };
 }
 
-// 1. 初始化空變數
-window.DB = { members: [], records: [], statuses: [] };
-let isInitialLoad = true; 
+// 【重要】預先給予初始值，防止 render 時出現 undefined
+window.DB = def(); 
+var DB = window.DB;
 
-// 2. 修正後的 save 函數
 function save() {
-  console.log("💾 觸發儲存功能...");
-  try {
-    // 1. 同步全域變數，確保資料最新
-    window.DB = DB; 
-
-    // 2. 本地備份
-    localStorage.setItem('whos_v5', JSON.stringify(window.DB));
-
-    // 3. Firebase 雲端同步
-    if (typeof database !== 'undefined') {
-      database.ref('attendance_data').set(window.DB)
-        .then(() => {
-          console.log("✅ Firebase 同步成功");
-          // 如果網頁有 toast 函式就顯示，沒有就用 console
-          if(typeof toast === 'function') toast('雲端資料已同步');
-        })
-        .catch(err => {
-          console.error("❌ Firebase 同步失敗:", err);
-        });
-    }
-  } catch (e) {
-    console.error("❌ save 執行出錯:", e);
+  console.log("💾 執行儲存...");
+  localStorage.setItem(KEY, JSON.stringify(window.DB));
+  if (typeof database !== 'undefined') {
+    database.ref('attendance_data').set(window.DB)
+      .then(() => console.log("✅ 雲端同步成功"))
+      .catch(err => console.error("❌ 雲端同步失敗:", err));
   }
 }
-// 3. 【核心修正】Firebase 監聽器
+
+// Firebase 監聽器：當資料回來時才更新畫面
 if (typeof database !== 'undefined') {
   database.ref('attendance_data').on('value', (snapshot) => {
     const cloudData = snapshot.val();
-    
-    if (cloudData && cloudData.members && cloudData.members.length > 0) {
-      console.log("📥 成功從雲端獲取資料");
+    if (cloudData && cloudData.members) {
+      console.log("📥 從雲端更新 DB 物件");
       window.DB = cloudData;
-    } else if (isInitialLoad) {
-      console.log("ℹ️ 雲端無資料，初始化預設值");
-      window.DB = def();
-      isInitialLoad = false;
-      save(); // 只有第一次完全沒資料才上傳預設值
+      DB = window.DB; // 確保全域變數同步
+      
+      // 資料到位後，才觸發畫面渲染
+      if(typeof render === 'function') render();
+      if(typeof renderIdentityGrid === 'function') renderIdentityGrid();
     }
-    
-    isInitialLoad = false;
-    // 將 window.DB 指定給區域變數 DB，確保舊程式碼能抓到
-    window.DB = window.DB; 
-    var DB = window.DB;
-
-    // 強制重新渲染所有畫面，解決「進去後沒資料」的問題
-    refreshAllUI();
   });
 }
 
@@ -1241,49 +1216,7 @@ function saveAdminPin(){
   renderAdmin();toast('✅ 管理者 PIN 已更新');
 }
 // ════════════════ INIT ════════════════
+// 初始渲染一次（使用預設值），防止畫面空白
 renderIdentityGrid();
 
-window.onload = function () {
-  renderIdentityGrid();
-};
-</script>
-<script>
-(function() {
-    console.log("正在嘗試掛載 Firebase 同步邏輯...");
-
-    // 1. 定義同步函數
-    function syncToFirebase() {
-        if (typeof DB !== 'undefined' && typeof database !== 'undefined') {
-            database.ref('attendance_data').set(DB)
-                .then(() => console.log("✅ Firebase 同步成功"))
-                .catch(err => console.error("❌ Firebase 儲存失敗:", err));
-        }
-    }
-
-    // 2. 攔截原本的 save 函數
-    const oldSave = window.save;
-    window.save = function() {
-        if (typeof oldSave === 'function') oldSave(); // 執行舊邏輯
-        syncToFirebase(); // 執行 Firebase 同步
-    };
-
-    // 3. 監聽 Firebase 變動
-    if (typeof database !== 'undefined') {
-        database.ref('attendance_data').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                window.DB = data;
-                console.log("📥 已從雲端更新資料");
-                
-                // 嘗試觸發畫面重繪
-                const renderFuncs = ['init', 'renderMembers', 'renderRecords'];
-                renderFuncs.forEach(funcName => {
-                    if (typeof window[funcName] === 'function') window[funcName]();
-                });
-            }
-        });
-    } else {
-        console.error("❌ 錯誤：找不到 Firebase database 物件，請檢查第二步與第三步是否正確。");
-    }
-})();
 </script>
