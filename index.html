@@ -513,7 +513,7 @@ body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:1
 // ════════════════ DATA ════════════════
 const KEY = 'whos_v5';
 
-// 1. 定義預設資料
+// 預設資料內容
 function def() {
   return {
     members: [
@@ -534,41 +534,43 @@ function def() {
   };
 }
 
-// 2. 初始 DB 物件 (先抓本地，等等會被 Firebase 覆蓋)
-let DB = JSON.parse(localStorage.getItem(KEY)) || def();
+// 關鍵：先宣告 DB，但不立即給它值，避免與 Firebase 衝突
+let DB = { members: [], records: [], statuses: [] }; 
+let isFirebaseSynced = false; // 標記是否已完成首次同步
 
-// 3. 修改後的儲存函數：確保推送到 Firebase
 function save() {
-  console.log("正在同步至 Firebase...");
-  // 同步到本地
-  localStorage.setItem(KEY, JSON.stringify(DB));
+  if (!isFirebaseSynced) return; // 如果雲端資料還沒載入，不准寫入（防止蓋掉雲端）
   
-  // 同步到雲端
+  localStorage.setItem(KEY, JSON.stringify(DB));
   if (typeof database !== 'undefined') {
     database.ref('attendance_data').set(DB)
-      .then(() => console.log("✅ Firebase 資料更新成功"))
-      .catch((error) => console.error("❌ Firebase 更新失敗:", error));
+      .then(() => console.log("✅ 雲端同步成功"))
+      .catch(err => console.error("❌ 同步失敗:", err));
   }
 }
 
-// 4. 【關鍵加入】從 Firebase 自動載入並監聽
+// 初始化：從雲端獲取資料
 if (typeof database !== 'undefined') {
   database.ref('attendance_data').on('value', (snapshot) => {
-    const cloudData = snapshot.val();
-    if (cloudData) {
-      console.log("📥 偵測到雲端更新，同步至網頁");
-      DB = cloudData;
-      // 強制重新渲染所有介面（視您的函式名而定）
-      if (typeof render === 'function') render();
-      if (typeof renderMembers === 'function') renderMembers();
-      if (typeof renderRecords === 'function') renderRecords();
+    const data = snapshot.val();
+    if (data && data.members) {
+      console.log("📥 成功載入雲端資料");
+      DB = data;
     } else {
-      console.log("ℹ️ 雲端尚無資料，將目前的預設資料上傳");
-      save(); 
+      console.log("ℹ️ 雲端無資料，使用預設值並初始化");
+      DB = def();
+      // 只有在雲端完全沒資料時，才把預設值推上去一次
+      database.ref('attendance_data').set(DB);
     }
+    
+    isFirebaseSynced = true; // 標記為同步完成
+    
+    // 執行所有需要的渲染
+    if (typeof render === 'function') render();
+    if (typeof renderMembers === 'function') renderMembers();
+    if (typeof renderIdentityGrid === 'function') renderIdentityGrid();
   });
 }
-
 // ════════════════ 其他變數維持不變 ════════════════
 let currentUser = null;
 let isAdmin = false;
