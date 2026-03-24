@@ -513,7 +513,6 @@ body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:1
 // ════════════════ DATA ════════════════
 const KEY = 'whos_v5';
 
-// 預設資料內容
 function def() {
   return {
     members: [
@@ -534,55 +533,63 @@ function def() {
   };
 }
 
-// 關鍵：先宣告 DB，但不立即給它值，避免與 Firebase 衝突
-let DB = { members: [], records: [], statuses: [] }; 
-let isFirebaseSynced = false; // 標記是否已完成首次同步
+// 1. 初始化空變數
+window.DB = { members: [], records: [], statuses: [] };
+let isInitialLoad = true; 
 
+// 2. 修正後的 save 函數
 function save() {
-  if (!isFirebaseSynced) return; // 如果雲端資料還沒載入，不准寫入（防止蓋掉雲端）
-  
-  localStorage.setItem(KEY, JSON.stringify(DB));
+  // 如果還沒從雲端載入過，禁止儲存，避免蓋掉雲端資料
+  if (isInitialLoad && window.DB.members.length === 0) return;
+
+  localStorage.setItem(KEY, JSON.stringify(window.DB));
   if (typeof database !== 'undefined') {
-    database.ref('attendance_data').set(DB)
+    database.ref('attendance_data').set(window.DB)
       .then(() => console.log("✅ 雲端同步成功"))
       .catch(err => console.error("❌ 同步失敗:", err));
   }
 }
 
-// 初始化：從雲端獲取資料
+// 3. 【核心修正】Firebase 監聽器
 if (typeof database !== 'undefined') {
   database.ref('attendance_data').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.members) {
-      console.log("📥 成功載入雲端資料");
-      DB = data;
-    } else {
-      console.log("ℹ️ 雲端無資料，使用預設值並初始化");
-      DB = def();
-      // 只有在雲端完全沒資料時，才把預設值推上去一次
-      database.ref('attendance_data').set(DB);
+    const cloudData = snapshot.val();
+    
+    if (cloudData && cloudData.members && cloudData.members.length > 0) {
+      console.log("📥 成功從雲端獲取資料");
+      window.DB = cloudData;
+    } else if (isInitialLoad) {
+      console.log("ℹ️ 雲端無資料，初始化預設值");
+      window.DB = def();
+      isInitialLoad = false;
+      save(); // 只有第一次完全沒資料才上傳預設值
     }
     
-    isFirebaseSynced = true; // 標記為同步完成
-    
-    // 執行所有需要的渲染
-    if (typeof render === 'function') render();
-    if (typeof renderMembers === 'function') renderMembers();
-    if (typeof renderIdentityGrid === 'function') renderIdentityGrid();
+    isInitialLoad = false;
+    // 將 window.DB 指定給區域變數 DB，確保舊程式碼能抓到
+    window.DB = window.DB; 
+    var DB = window.DB;
+
+    // 強制重新渲染所有畫面，解決「進去後沒資料」的問題
+    refreshAllUI();
   });
 }
-// ════════════════ 其他變數維持不變 ════════════════
-let currentUser = null;
-let isAdmin = false;
-let calView = 'week';
-let calOffset = 0;
-let calMemberFilter = 'all';
-let detailMemberId = null;
-let ciStatusId = null;
-let ciDateMode = 'single';
-let erStatusId = null;
-let erDateMode = 'single';
-let apBuf = '';
+
+// 建立一個統一更新介面的函式
+function refreshAllUI() {
+  if (typeof renderIdentityGrid === 'function') renderIdentityGrid();
+  if (typeof renderMembers === 'function') renderMembers();
+  if (typeof renderRecords === 'function') renderRecords();
+  if (typeof renderAdmin === 'function') renderAdmin();
+  if (typeof render === 'function') render(); 
+}
+
+// 讓全域 DB 變數指向 window.DB
+Object.defineProperty(window, 'DB', {
+  get: function() { return window._DB_INTERNAL; },
+  set: function(val) { window._DB_INTERNAL = val; },
+  configurable: true
+});
 // ════════════════ HELPERS ════════════════
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
