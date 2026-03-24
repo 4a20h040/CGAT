@@ -539,17 +539,30 @@ let isInitialLoad = true;
 
 // 2. 修正後的 save 函數
 function save() {
-  // 如果還沒從雲端載入過，禁止儲存，避免蓋掉雲端資料
-  if (isInitialLoad && window.DB.members.length === 0) return;
+  console.log("💾 觸發儲存功能...");
+  try {
+    // 1. 同步全域變數，確保資料最新
+    window.DB = DB; 
 
-  localStorage.setItem(KEY, JSON.stringify(window.DB));
-  if (typeof database !== 'undefined') {
-    database.ref('attendance_data').set(window.DB)
-      .then(() => console.log("✅ 雲端同步成功"))
-      .catch(err => console.error("❌ 同步失敗:", err));
+    // 2. 本地備份
+    localStorage.setItem('whos_v5', JSON.stringify(window.DB));
+
+    // 3. Firebase 雲端同步
+    if (typeof database !== 'undefined') {
+      database.ref('attendance_data').set(window.DB)
+        .then(() => {
+          console.log("✅ Firebase 同步成功");
+          // 如果網頁有 toast 函式就顯示，沒有就用 console
+          if(typeof toast === 'function') toast('雲端資料已同步');
+        })
+        .catch(err => {
+          console.error("❌ Firebase 同步失敗:", err);
+        });
+    }
+  } catch (e) {
+    console.error("❌ save 執行出錯:", e);
   }
 }
-
 // 3. 【核心修正】Firebase 監聽器
 if (typeof database !== 'undefined') {
   database.ref('attendance_data').on('value', (snapshot) => {
