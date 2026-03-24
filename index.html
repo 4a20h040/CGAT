@@ -5,15 +5,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
   // 1. 貼上您專屬的 Firebase 配置
-  const firebaseConfig = {
-    apiKey: "AIzaSyC9vxLZ6YmqpOc7p5d8HeflRP4oTrPPswo",
-    authDomain: "cgat-b1547.firebaseapp.com",
-    databaseURL: "https://cgat-b1547-default-rtdb.asia-southeast1.firebasedatabase.app/", // 這行很重要，Realtime Database 必須有這行
+const firebaseConfig = { 
+    apiKey: "AIzaSyC9vxLZ6YmqpOc7p5d8HeflRP4oTrPPswo", 
+    authDomain: "cgat-b1547.firebaseapp.com", 
     projectId: "cgat-b1547",
-    storageBucket: "cgat-b1547.firebasestorage.app",
-    messagingSenderId: "276584566172",
-    appId: "1:276584566172:web:7bc6edb6a97d2648260c59"
-  };
+    databaseURL: "https://cgat-b1547.firebaseio.com/" // 這裡一定要加這行！
+};
 
   // 2. 初始化 Firebase
   firebase.initializeApp(firebaseConfig);
