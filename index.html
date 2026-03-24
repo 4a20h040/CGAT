@@ -1,63 +1,1319 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>誰有上班</title>
-</head>
-
-<body>
-
-<h2>誰有上班（測試版）</h2>
-
-<div id="app"></div>
-
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
-// ====== 假資料 ======
-const DB = {
-  members: [
-    {id:'m1', name:'張小明'},
-    {id:'m2', name:'林小美'}
-  ]
+  // 1. 貼上您專屬的 Firebase 配置
+  const firebaseConfig = {
+    apiKey: "AIzaSyC9vxLZ6YmqpOc7p5d8HeflRP4oTrPPswo",
+    authDomain: "cgat-b1547.firebaseapp.com",
+    databaseURL: "https://cgat-b1547.firebaseapp.com/", // 這行很重要，Realtime Database 必須有這行
+    projectId: "cgat-b1547",
+    storageBucket: "cgat-b1547.firebasestorage.app",
+    messagingSenderId: "276584566172",
+    appId: "1:276584566172:web:7bc6edb6a97d2648260c59"
+  };
+
+  // 2. 初始化 Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+  // 3. 定義全域變數，取代原本的 DB 物件
+  // 我們將在下一步把原本的讀取邏輯改為從 database 讀取
+  console.log("Firebase 初始化成功");
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&amp;family=DM+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>:root{
+  --bg:#F5F3EE;--card:#FFF;--text:#1A1915;--text2:#6B6860;--text3:#A8A59E;
+  --border:#E4E1D9;--accent:#2D5A3D;--accent2:#4A8C5E;--accent-light:#E8F2EC;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);--r:14px;--r-sm:8px;
+  --font:'Noto Sans TC',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:100vh}
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+/* ── IDENTITY PICKER ── */
+#screen-identity{background:linear-gradient(160deg,#1A3326,#2D5A3D 50%,#1A3326);align-items:center;justify-content:center;padding:24px}
+.identity-box{background:rgba(255,255,255,.97);border-radius:24px;padding:32px 24px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.identity-logo{text-align:center;margin-bottom:24px}
+.identity-logo .logo-mark{width:60px;height:60px;background:var(--accent);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:26px}
+.identity-logo h1{font-size:21px;font-weight:700}
+.identity-logo p{font-size:13px;color:var(--text2);margin-top:4px}
+.identity-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.5px;margin-bottom:10px}
+.member-pick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.member-pick-btn{border:2px solid var(--border);background:var(--bg);border-radius:10px;padding:10px 6px;cursor:pointer;text-align:center;transition:all .15s;font-family:var(--font);font-size:12px;color:var(--text2)}
+.member-pick-btn .mpb-emoji{font-size:22px;display:block;margin-bottom:4px}
+.member-pick-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.member-pick-btn.selected{border-color:var(--accent);background:var(--accent);color:white}
+.btn-enter{width:100%;height:48px;background:var(--accent);color:white;border:none;border-radius:var(--r-sm);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;margin-top:14px;transition:background .15s}
+.btn-enter:hover{background:var(--accent2)}
+.btn-enter:disabled{opacity:.35;cursor:not-allowed}
+/* ── APP SHELL ── */
+#screen-app{background:var(--bg)}
+.app-header{background:var(--accent);color:white;padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.app-header-left h2{font-size:17px;font-weight:700}
+.app-header-left .date-tag{font-size:11px;opacity:.75;margin-top:1px}
+.header-right{display:flex;gap:6px}
+.icon-btn{width:34px;height:34px;border-radius:9px;border:none;background:rgba(255,255,255,.18);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:background .15s;font-family:var(--font)}
+.icon-btn:hover{background:rgba(255,255,255,.28)}
+.user-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px 4px 6px;cursor:pointer;transition:background .15s;border:none;color:white;font-family:var(--font);font-size:12px;font-weight:500}
+.user-chip:hover{background:rgba(255,255,255,.28)}
+.user-chip .uc-emoji{font-size:18px}
+.tab-bar{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:58px;z-index:99}
+.tab-btn{flex:1;padding:11px 4px 9px;border:none;background:none;cursor:pointer;font-family:var(--font);font-size:11px;color:var(--text3);font-weight:500;display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .15s;border-bottom:2.5px solid transparent}
+.tab-btn .ti{font-size:17px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none;padding:14px;overflow-y:auto}
+.tab-content.active{display:block}
+/* ── OVERVIEW ── */
+.overview-summary{background:var(--card);border-radius:var(--r);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;gap:8px;flex-wrap:wrap}
+.summary-chip{display:flex;align-items:center;gap:5px;border-radius:20px;padding:5px 10px;font-size:11px;font-weight:500;border:1.5px solid var(--border);background:var(--bg)}
+.summary-chip .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.section-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.7px;text-transform:uppercase;margin-bottom:10px;margin-top:2px}
+.member-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.member-card{background:var(--card);border-radius:var(--r);padding:13px;box-shadow:var(--shadow);border-left:4px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.member-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg)}
+.mc-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.mc-avatar{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.mc-name{font-size:13px;font-weight:600}
+.mc-code{font-size:10px;color:var(--text3);font-family:'DM Sans',sans-serif;letter-spacing:.8px}
+.status-badge{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:3px 7px;font-size:11px;font-weight:500}
+.mc-hint{font-size:10px;color:var(--text3);margin-top:5px}
+.self-pill{font-size:10px;background:var(--accent);color:white;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle}
+/* ── DETAIL SCREEN ── */
+#screen-detail{background:var(--bg)}
+.detail-header{background:var(--accent);color:white;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.back-btn{width:32px;height:32px;border-radius:8px;border:none;background:rgba(255,255,255,.2);color:white;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dh-info h3{font-size:16px;font-weight:700}
+.dh-info p{font-size:11px;opacity:.8;margin-top:1px}
+.detail-body{padding:14px}
+.day-block{background:var(--card);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.day-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.today-pill{background:var(--accent);color:white;font-size:9px;padding:2px 7px;border-radius:8px;font-weight:600}
+.record-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-bottom:1px solid var(--border)}
+.record-row:last-child{border-bottom:none}
+.rec-icon{font-size:19px;flex-shrink:0;padding-top:1px}
+.rec-info{flex:1;min-width:0}
+.rec-status{font-size:13px;font-weight:600}
+.rec-sub{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.65}
+.rec-dates{font-size:11px;color:var(--accent2);font-family:'DM Sans',sans-serif;margin-top:2px}
+.rec-actions{display:flex;gap:5px;flex-shrink:0;align-items:flex-start;padding-top:2px}
+.btn-rec{padding:4px 9px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-rec.edit:hover{border-color:var(--accent);color:var(--accent)}
+.btn-rec.revoke:hover{border-color:#C0392B;color:#C0392B}
+.no-rec{font-size:12px;color:var(--text3);font-style:italic;padding:4px 0}
+.detail-add-btn{width:100%;margin-top:6px;height:42px;border:1.5px dashed var(--border);border-radius:var(--r-sm);background:none;font-family:var(--font);font-size:13px;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.detail-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+/* ── CHECKIN FORM ── */
+.checkin-card{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);margin-bottom:12px}
+.ci-who{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.ci-who-avatar{width:44px;height:44px;border-radius:13px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:22px}
+.ci-who-info .ci-name{font-size:16px;font-weight:700}
+.ci-who-info .ci-code{font-size:11px;color:var(--text2);margin-top:2px;font-family:'DM Sans',sans-serif}
+.form-label{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;margin-top:14px}
+.form-label:first-child{margin-top:0}
+.date-mode-toggle{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.dmt-btn{flex:1;height:34px;border:none;background:var(--bg);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s}
+.dmt-btn.active{background:var(--accent);color:white}
+.date-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.date-row label{font-size:12px;color:var(--text2);flex-shrink:0}
+.f-input{flex:1;height:38px;border:1.5px solid var(--border);border-radius:8px;padding:0 11px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;min-width:90px}
+.f-input:focus{border-color:var(--accent)}
+.status-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:4px}
+.st-opt{border:2px solid var(--border);border-radius:10px;padding:11px 10px;cursor:pointer;transition:all .15s;background:var(--bg);display:flex;align-items:center;gap:8px}
+.st-opt:hover{border-color:var(--text2)}
+.st-opt.selected{border-color:currentColor}
+.st-opt .si{font-size:19px;flex-shrink:0}
+.st-opt .sl{font-size:12px;font-weight:600}
+.note-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.n-input{height:38px;border:1.5px solid var(--border);border-radius:8px;padding:0 11px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;width:100%}
+.n-input:focus{border-color:var(--accent)}
+.n-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);resize:none;outline:none;transition:border-color .15s;margin-bottom:8px}
+.n-textarea:focus{border-color:var(--accent)}
+.proxy-sel{width:100%;height:38px;border:1.5px solid var(--border);border-radius:8px;padding:0 11px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;margin-bottom:12px;cursor:pointer}
+.proxy-sel:focus{border-color:var(--accent)}
+.btn-submit{width:100%;height:48px;background:var(--accent);color:white;border:none;border-radius:var(--r-sm);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-submit:hover{background:var(--accent2)}
+.no-identity-notice{background:var(--card);border-radius:var(--r);padding:32px 20px;text-align:center;box-shadow:var(--shadow)}
+.no-identity-notice p{font-size:14px;color:var(--text2);margin-bottom:14px}
+.btn-pick-identity{height:44px;padding:0 20px;background:var(--accent);color:white;border:none;border-radius:var(--r-sm);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer}
+/* ── CALENDAR ── */
+.cal-toolbar{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--shadow);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cal-nav-group{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.cal-nav-label{font-size:15px;font-weight:700;flex:1;text-align:center}
+.cal-arrow{width:30px;height:30px;border:1.5px solid var(--border);border-radius:7px;background:none;cursor:pointer;font-size:13px;color:var(--text2);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cal-arrow:hover{border-color:var(--accent);color:var(--accent)}
+.view-mode-toggle{display:flex;border:1.5px solid var(--border);border-radius:7px;overflow:hidden}
+.vmt-btn{padding:5px 10px;border:none;background:var(--bg);font-family:var(--font);font-size:11px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s}
+.vmt-btn.active{background:var(--accent);color:white}
+.cal-filter-bar{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--shadow);margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cal-search-wrap{flex:1;min-width:120px;position:relative;display:flex;align-items:center}
+.cal-search-icon{position:absolute;left:9px;font-size:13px;pointer-events:none}
+.cal-search-input{width:100%;height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px 0 30px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+.cal-search-input:focus{border-color:var(--accent)}
+.cal-member-select{height:36px;border:1.5px solid var(--border);border-radius:8px;padding:0 10px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;cursor:pointer;transition:border-color .15s;max-width:180px}
+.cal-member-select:focus{border-color:var(--accent)}
+.filter-pill{flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);transition:all .15s;font-family:var(--font)}
+.filter-pill.active{background:var(--accent);color:white;border-color:var(--accent)}
+/* Week/biweek grid */
+.cal-grid{background:var(--card);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px}
+.cal-grid-header{display:grid;border-bottom:1px solid var(--border)}
+.cal-hcell{padding:7px 3px;text-align:center;font-size:10px;font-weight:700;color:var(--text2)}
+.cal-hcell.today-col{color:var(--accent)}
+.cal-grid-row{display:grid;border-bottom:1px solid var(--border)}
+.cal-grid-row:last-child{border-bottom:none}
+.cal-name-cell{padding:6px 4px;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border-right:1px solid var(--border);min-width:0;text-align:center}
+.cal-cell{padding:3px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40px;gap:2px;cursor:default}
+.cal-cell.today-cell{background:#E8F2EC22}
+.cal-label{font-size:10px;font-weight:600;border-radius:4px;padding:2px 4px;line-height:1.3;text-align:center;width:100%;max-width:52px;white-space:normal;word-break:break-all}
+/* Month grid */
+.month-grid{background:var(--card);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px}
+.month-header-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.month-hdcell{padding:6px 4px;text-align:center;font-size:10px;font-weight:700;color:var(--text2)}
+.month-body{}
+.month-week-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.month-week-row:last-child{border-bottom:none}
+.month-day-cell{padding:4px 3px;min-height:52px;border-right:1px solid var(--border);cursor:pointer;transition:background .1s;vertical-align:top}
+.month-day-cell:last-child{border-right:none}
+.month-day-cell.today-day{background:var(--accent-light)}
+.month-day-cell.other-month .mdc-num{color:var(--text3)}
+.mdc-num{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:3px;display:block;text-align:center}
+.mdc-num.today-num{background:var(--accent);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.month-event-dot{font-size:10px;font-weight:600;border-radius:3px;padding:1px 3px;line-height:1.3;margin-bottom:1px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* ── HISTORY ── */
+.hist-filters{display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.hist-entry{background:var(--card);border-radius:10px;padding:11px 13px;box-shadow:var(--shadow);margin-bottom:8px;display:flex;align-items:flex-start;gap:11px}
+/* ── ADMIN ── */
+.admin-section{margin-bottom:20px}
+.admin-member-row{background:var(--card);border-radius:10px;padding:11px 13px;box-shadow:var(--shadow);margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+.admin-member-info{display:flex;align-items:center;gap:9px}
+.admin-btns{display:flex;gap:5px}
+.btn-sm{padding:4px 9px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);border:1.5px solid var(--border);background:var(--bg);color:var(--text2);transition:all .15s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm.danger:hover{border-color:#C0392B;color:#C0392B}
+.form-row{display:flex;gap:7px;margin-bottom:9px;flex-wrap:wrap}
+.btn-add{height:38px;padding:0 14px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+.btn-add:hover{background:var(--accent2)}
+.st-admin-row{background:var(--card);border-radius:10px;padding:9px 13px;box-shadow:var(--shadow);margin-bottom:7px;display:flex;align-items:center;gap:9px}
+.color-wrap{position:relative}
+.color-circle{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid var(--border);flex-shrink:0}
+.color-wrap input[type=color]{position:absolute;opacity:0;width:22px;height:22px;cursor:pointer;top:0;left:0}
+.admin-pin-box{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-top:4px}
+.line-notify-box{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-top:4px}
+.line-status{display:flex;align-items:center;gap:7px;margin-bottom:12px}
+.line-dot{width:8px;height:8px;border-radius:50%;background:#ccc}
+.line-dot.on{background:#06C755}
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:999}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;padding:22px 18px 30px;width:100%;max-width:500px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:14px}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.btn-cancel{flex:1;height:42px;border:1.5px solid var(--border);border-radius:8px;background:none;font-family:var(--font);font-size:14px;cursor:pointer;color:var(--text2)}
+.btn-confirm{flex:1;height:42px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer}
+/* ADMIN PIN MODAL */
+#modal-admin-pin .pin-row{display:flex;gap:8px;margin:14px 0}
+#modal-admin-pin .pin-dot{flex:1;height:46px;border:2px solid var(--border);border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent);transition:all .15s}
+#modal-admin-pin .pin-dot.filled{border-color:var(--accent);background:var(--accent-light)}
+#modal-admin-pin .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:6px}
+#modal-admin-pin .pin-key{height:48px;border:1.5px solid var(--border);border-radius:9px;background:var(--bg);cursor:pointer;font-size:17px;font-weight:500;font-family:'DM Sans',sans-serif;color:var(--text);transition:all .1s}
+#modal-admin-pin .pin-key:active{background:var(--border);transform:scale(.96)}
+#modal-admin-pin .pin-key.del{font-size:13px;color:var(--text2)}
+.pin-err{color:#C0392B;font-size:12px;text-align:center;min-height:16px;margin-top:4px}
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:#1A1915;color:white;padding:11px 18px;border-radius:22px;font-size:13px;font-weight:500;z-index:9999;transition:transform .3s;white-space:nowrap;max-width:88vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.empty-state{text-align:center;padding:36px 20px;color:var(--text3);font-size:13px}
+.empty-state .ei{font-size:36px;margin-bottom:10px}
+@media(min-width:540px){
+  .member-cards{grid-template-columns:repeat(auto-fill,minmax(175px,1fr))}
+  .status-grid,.note-grid{grid-template-columns:repeat(3,1fr)}
+  .modal{border-radius:18px;margin-bottom:20px}
+}</style>
+<!-- ═══ IDENTITY PICKER ═══ -->
+<div id="screen-identity" class="screen active">
+  <div class="identity-box">
+    <div class="identity-logo">
+      <div class="logo-mark">🏢</div>
+      <h1>誰有上班</h1>
+      <p>課室差勤出勤狀況</p>
+    </div>
+    <div class="identity-label">請選擇你的名字</div>
+    <div class="member-pick-grid" id="identity-grid"></div>
+    <button class="btn-enter" id="btn-enter" onclick="enterApp()" disabled="">進入</button>
+  </div>
+</div>
+<!-- ═══ APP ═══ -->
+<div id="screen-app" class="screen">
+  <div class="app-header">
+    <div class="app-header-left">
+      <h2>誰有上班</h2>
+      <div class="date-tag" id="header-date"></div>
+    </div>
+    <div class="header-right">
+      <button class="user-chip" onclick="switchIdentity()" id="user-chip">
+        <span class="uc-emoji" id="uc-emoji"></span>
+        <span id="uc-name"></span>
+      </button>
+      <button class="icon-btn" onclick="openNotifyModal()">🔔</button>
+      <button class="icon-btn" onclick="openAdminPin()" title="管理模式">⚙️</button>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('overview',this)">
+      <span class="ti">🏠</span>總覽
+    </button>
+    <button class="tab-btn" onclick="switchTab('checkin',this)">
+      <span class="ti">📋</span>差勤登記
+    </button>
+    <button class="tab-btn" onclick="switchTab('calendar',this)">
+      <span class="ti">📅</span>行事曆
+    </button>
+    <button class="tab-btn" onclick="switchTab('history',this)">
+      <span class="ti">🗂</span>歷史紀錄
+    </button>
+    <button class="tab-btn" onclick="switchTab('admin',this)" id="admin-tab" style="display:none">
+      <span class="ti">🔑</span>管理
+    </button>
+  </div>
+  <!-- OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="overview-summary" id="overview-summary"></div>
+    <div class="section-title">課室成員</div>
+    <div class="member-cards" id="member-cards"></div>
+  </div>
+  <!-- CHECKIN -->
+  <div class="tab-content" id="tab-checkin">
+    <div id="checkin-inner"></div>
+  </div>
+  <!-- CALENDAR -->
+  <div class="tab-content" id="tab-calendar">
+    <div class="cal-toolbar">
+      <div class="cal-nav-group">
+        <button class="cal-arrow" onclick="calNav(-1)">‹</button>
+        <div class="cal-nav-label" id="cal-nav-label"></div>
+        <button class="cal-arrow" onclick="calNav(1)">›</button>
+      </div>
+      <div class="view-mode-toggle">
+        <button class="vmt-btn active" id="vmt-week" onclick="setCalView('week')">單週</button>
+        <button class="vmt-btn" id="vmt-biweek" onclick="setCalView('biweek')">雙週</button>
+        <button class="vmt-btn" id="vmt-month" onclick="setCalView('month')">單月</button>
+      </div>
+    </div>
+    <div class="cal-filter-bar">
+      <div class="cal-search-wrap">
+        <span class="cal-search-icon">🔍</span>
+        <input class="cal-search-input" id="cal-search" placeholder="搜尋員工代號或姓名…" oninput="calSearchFilter()" autocomplete="off">
+      </div>
+      <select class="cal-member-select" id="cal-member-select" onchange="calSelectMember(this.value)">
+        <option value="all">👥 全部成員</option>
+      </select>
+    </div>
+    <div id="cal-body"></div>
+  </div>
+  <!-- HISTORY -->
+  <div class="tab-content" id="tab-history">
+    <div class="hist-filters">
+      <select class="f-input" id="hist-m" onchange="renderHistory()" style="max-width:145px;flex:none">
+        <option value="">全部成員</option>
+      </select>
+      <select class="f-input" id="hist-s" onchange="renderHistory()" style="max-width:125px;flex:none">
+        <option value="">全部狀態</option>
+      </select>
+      <select class="f-input" id="hist-r" onchange="renderHistory()" style="max-width:115px;flex:none">
+        <option value="30">近 30 天</option>
+        <option value="90">近 3 個月</option>
+        <option value="180" selected="">近半年</option>
+      </select>
+    </div>
+    <div id="history-list"></div>
+  </div>
+  <!-- ADMIN -->
+  <div class="tab-content" id="tab-admin">
+    <div class="admin-section">
+      <div class="section-title">成員管理</div>
+      <div id="admin-member-list"></div>
+      <div class="form-row">
+        <input class="f-input" id="nm-code" placeholder="員工代碼" style="max-width:100px">
+        <input class="f-input" id="nm-name" placeholder="姓名">
+        <input class="f-input" id="nm-emoji" placeholder="頭像" style="max-width:55px">
+        <button class="btn-add" onclick="addMember()">新增</button>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="section-title">差勤狀態管理</div>
+      <div id="admin-status-list"></div>
+      <div class="form-row">
+        <input class="f-input" id="ns-emoji" placeholder="圖示" style="max-width:55px">
+        <input class="f-input" id="ns-label" placeholder="狀態名稱">
+        <div class="color-wrap" style="display:flex;align-items:center">
+          <div class="color-circle" id="ns-color-preview" style="background:#2D5A3D"></div>
+          <input type="color" id="ns-color" value="#2D5A3D" oninput="document.getElementById('ns-color-preview').style.background=this.value">
+        </div>
+        <button class="btn-add" onclick="addStatus()">新增</button>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="section-title">管理者 PIN 設定</div>
+      <div class="admin-pin-box">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px">設定 6 位數管理者 PIN，用於進入管理模式。</p>
+        <div class="form-row">
+          <input class="f-input" id="new-admin-pin" placeholder="新的 6 位數 PIN" type="password" maxlength="6" style="max-width:180px">
+          <input class="f-input" id="new-admin-pin2" placeholder="再次確認" type="password" maxlength="6" style="max-width:180px">
+          <button class="btn-add" onclick="saveAdminPin()">儲存</button>
+        </div>
+        <p style="font-size:11px;color:var(--text3)">目前 PIN：
+          <span id="admin-pin-hint"></span>
+        </p>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="section-title">🔔 Line Notify 設定</div>
+      <div class="line-notify-box">
+        <div class="line-status">
+          <div class="line-dot" id="line-dot"></div>
+          <span id="line-status-text" style="font-size:12px;color:var(--text2)">尚未連結</span>
+        </div>
+        <div class="form-row">
+          <input class="f-input" id="line-token-input" placeholder="貼上 Line Notify Token" type="password">
+          <button class="btn-add" onclick="saveLineToken()">儲存</button>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:6px">前往 
+          <strong>notify.line.me</strong> 取得 Token
+        </p>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn-sm" onclick="testLine()">測試通知</button>
+          <button class="btn-sm" onclick="sendReport()">發送今日報表</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ═══ DETAIL SCREEN ═══ -->
+<div id="screen-detail" class="screen">
+  <div class="detail-header">
+    <button class="back-btn" onclick="closeDetail()">‹</button>
+    <div class="dh-info">
+      <h3 id="detail-title"></h3>
+      <p id="detail-subtitle"></p>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+<!-- MODAL: edit member -->
+<div class="modal-overlay" id="modal-edit-member">
+  <div class="modal">
+    <h3>編輯成員</h3>
+    <input type="hidden" id="em-id">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <input class="f-input" id="em-code" placeholder="員工代碼">
+      <input class="f-input" id="em-name" placeholder="姓名">
+      <input class="f-input" id="em-emoji" placeholder="頭像 Emoji">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-edit-member')">取消</button>
+      <button class="btn-confirm" onclick="saveEditMember()">儲存</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: edit record -->
+<div class="modal-overlay" id="modal-edit-rec">
+  <div class="modal">
+    <h3>更改差勤紀錄</h3>
+    <input type="hidden" id="er-id">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div class="form-label">差勤期間</div>
+        <div class="date-mode-toggle">
+          <button class="dmt-btn active" id="er-m-s" onclick="setErMode('single')">單日</button>
+          <button class="dmt-btn" id="er-m-r" onclick="setErMode('range')">多日區間</button>
+        </div>
+        <div id="er-single-wrap" class="date-row">
+          <label>日期</label>
+          <input type="date" class="f-input" id="er-ds">
+        </div>
+        <div id="er-range-wrap" class="date-row" style="display:none">
+          <label>開始</label>
+          <input type="date" class="f-input" id="er-dstart">
+          <label>結束</label>
+          <input type="date" class="f-input" id="er-dend">
+        </div>
+      </div>
+      <div>
+        <div class="form-label">差勤類別</div>
+        <div class="status-grid" id="er-status-grid"></div>
+      </div>
+      <input class="n-input" id="er-title" placeholder="名稱 / 事由">
+      <input class="n-input" id="er-location" placeholder="地點">
+      <input class="n-input" id="er-time" placeholder="時間（如 09:00–17:00）">
+      <textarea class="n-textarea" id="er-extra" rows="2" placeholder="其他備註"></textarea>
+      <div class="form-label" style="margin:0 0 4px">職務代理人</div>
+      <select class="proxy-sel" id="er-proxy" style="margin-bottom:0"></select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-edit-rec')">取消</button>
+      <button class="btn-confirm" onclick="saveEditRecord()">儲存</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: admin PIN entry -->
+<div class="modal-overlay" id="modal-admin-pin">
+  <div class="modal">
+    <h3>🔑 進入管理模式</h3>
+    <p style="font-size:13px;color:var(--text2)">請輸入 6 位數管理者 PIN</p>
+    <div class="pin-row">
+      <div class="pin-dot" id="ap0"></div>
+      <div class="pin-dot" id="ap1"></div>
+      <div class="pin-dot" id="ap2"></div>
+      <div class="pin-dot" id="ap3"></div>
+      <div class="pin-dot" id="ap4"></div>
+      <div class="pin-dot" id="ap5"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="apPin('1')">1</button>
+      <button class="pin-key" onclick="apPin('2')">2</button>
+      <button class="pin-key" onclick="apPin('3')">3</button>
+      <button class="pin-key" onclick="apPin('4')">4</button>
+      <button class="pin-key" onclick="apPin('5')">5</button>
+      <button class="pin-key" onclick="apPin('6')">6</button>
+      <button class="pin-key" onclick="apPin('7')">7</button>
+      <button class="pin-key" onclick="apPin('8')">8</button>
+      <button class="pin-key" onclick="apPin('9')">9</button>
+      <button class="pin-key" style="visibility:hidden"></button>
+      <button class="pin-key" onclick="apPin('0')">0</button>
+      <button class="pin-key del" onclick="apDel()">⌫</button>
+    </div>
+    <div class="pin-err" id="ap-err"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn-cancel" onclick="closeAdminPin()">取消</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: Line Notify -->
+<div class="modal-overlay" id="modal-notify">
+  <div class="modal">
+    <h3>🔔 Line Notify</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">設定 Token 後可接收差勤通知與每日報表。</p>
+    <div class="line-status">
+      <div class="line-dot" id="line-dot2"></div>
+      <span id="line-status-text2" style="font-size:12px;color:var(--text2)">尚未連結</span>
+    </div>
+    <div class="form-row">
+      <input class="f-input" id="line-token2" placeholder="Line Notify Token" type="password">
+      <button class="btn-add" onclick="saveLineToken2()">儲存</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-notify')">關閉</button>
+      <button class="btn-confirm" onclick="sendReport();closeModal('modal-notify')">發送今日報表</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: 重複登記警告 -->
+<div class="modal-overlay" id="modal-dup-warn" style="align-items:center">
+  <div class="modal" style="border-radius:18px;max-width:340px;margin:0 16px;text-align:center;padding:28px 22px 24px">
+    <div style="font-size:40px;margin-bottom:10px">⚠️</div>
+    <h3 style="font-size:17px;margin-bottom:8px">重複登記</h3>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:6px">
+      <strong id="dup-modal-date"></strong> 當天已有
+    </p>
+    <p style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px" id="dup-modal-label"></p>
+    <p style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:20px">每日僅能登記一筆差勤紀錄。
+      <br>請至「總覽 → 個人紀錄」先撤銷原有紀錄，再重新登記。
+    </p>
+    <button class="btn-confirm" style="width:100%;height:44px" onclick="closeModal('modal-dup-warn')">我知道了</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
+const firebaseConfig = {
+  apiKey: "你的KEY",
+  authDomain: "xxx.firebaseapp.com",
+  projectId: "xxx",
 };
 
-let currentUser = null;
-
-// ====== 初始化 ======
-function init(){
-  renderIdentity();
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+<script>// ════════════════ DATA ════════════════
+const KEY='whos_v5';
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||def();}catch{return def();}}
+function save() {
+  // 保持原本的 localStorage 備份（可選）
+  localStorage.setItem('OFFICE_DB', JSON.stringify(DB));
+  
+  // 【關鍵】將資料推送到 Firebase
+  // 我們將資料存在資料庫的 'data' 路徑下
+  database.ref('attendance_data').set(DB)
+    .then(() => console.log("Firebase 資料更新成功"))
+    .catch((error) => console.error("Firebase 更新失敗:", error));
 }
-
-// ====== 選人畫面 ======
-function renderIdentity(){
-  const el = document.getElementById("app");
-
-  el.innerHTML = `
-    <h3>請選擇你的名字</h3>
-    ${DB.members.map(m => `
-      <button onclick="selectUser('${m.id}')">${m.name}</button>
-    `).join("")}
-  `;
+function def(){return{
+  members:[
+    {id:'m1',code:'A001',name:'張小明',emoji:'👨‍💻'},
+    {id:'m2',code:'A002',name:'林小美',emoji:'👩‍🎨'},
+    {id:'m3',code:'A003',name:'陳大衛',emoji:'👨‍💼'},
+    {id:'m4',code:'A004',name:'王小雯',emoji:'👩‍💼'},
+  ],
+  statuses:[
+    {id:'s1',emoji:'🟡',label:'公出 / 外勤',color:'#D4890A'},
+    {id:'s2',emoji:'🟠',label:'出差',color:'#C0621A'},
+    {id:'s3',emoji:'🔴',label:'請假 / 休假',color:'#C0392B'},
+    {id:'s4',emoji:'🔵',label:'其他',color:'#7B3FA0'},
+  ],
+  records:[],
+  adminPin:'000000',
+  lineToken:'',
+};}
+let DB=load();
+// 清理：確保每個成員每一天只有一筆差勤紀錄（防止舊版本遺留的重複資料）
+(function sanitizeRecords(){
+  const seen={};
+  const cleaned=[];
+  // 依 createdAt 從新到舊排序
+  const sorted=[...DB.records].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  sorted.forEach(rec=>{
+    // 展開此紀錄所涵蓋的每一天
+    let dCur=new Date(rec.dateStart+'T00:00:00');
+    const dEnd=new Date(rec.dateEnd+'T00:00:00');
+    let overlap=false;
+    while(dCur<=dEnd){
+      const d=dCur.toISOString().slice(0,10);
+      const key=rec.memberId+'|'+d;
+      if(seen[key]){overlap=true;break;}
+      dCur.setDate(dCur.getDate()+1);
+    }
+    if(!overlap){
+      // 標記此紀錄佔用的所有日期
+      let dCur2=new Date(rec.dateStart+'T00:00:00');
+      const dEnd2=new Date(rec.dateEnd+'T00:00:00');
+      while(dCur2<=dEnd2){
+        const d=dCur2.toISOString().slice(0,10);
+        seen[rec.memberId+'|'+d]=true;
+        dCur2.setDate(dCur2.getDate()+1);
+      }
+      cleaned.push(rec);
+    }
+  });
+  if(cleaned.length!==DB.records.length){
+    DB.records=cleaned;
+    save();
+  }
+})();
+let currentUser=null; // {id,code,name,emoji}
+let isAdmin=false;
+let calView='week'; // week|biweek|month
+let calOffset=0;
+let calMemberFilter='all';
+let detailMemberId=null;
+let ciStatusId=null;
+let ciDateMode='single';
+let erStatusId=null;
+let erDateMode='single';
+let apBuf='';
+// ════════════════ HELPERS ════════════════
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function fmtDate(s){return new Date(s+'T00:00:00').toLocaleDateString('zh-TW',{month:'short',day:'numeric',weekday:'short'});}
+function fmtShort(s){return new Date(s+'T00:00:00').toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'});}
+function getMember(id){return DB.members.find(m=>m.id===id);}
+function getMemberByCode(c){return DB.members.find(m=>m.code.toUpperCase()===c.toUpperCase());}
+function getStatus(id){return DB.statuses.find(s=>s.id===id);}
+function uid(){return 'r'+Date.now()+Math.random().toString(36).slice(2,5);}
+function darken(hex,amt=60){const n=parseInt(hex.slice(1),16);return `rgb(${Math.max(0,(n>>16)-amt)},${Math.max(0,((n>>8)&0xff)-amt)},${Math.max(0,(n&0xff)-amt)})`;}
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function recOnDate(mid,date){
+  // 只回傳資料，不做任何修改，確保不影響重複檢查
+  const all=DB.records.filter(r=>r.memberId===mid&&r.dateStart<=date&&r.dateEnd>=date);
+  if(all.length<=1)return all;
+  all.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  return [all[0]];
 }
-
-// ====== 選擇使用者 ======
-function selectUser(id){
-  currentUser = DB.members.find(m => m.id === id);
-  renderMain();
+function recInRange(mid,from,to){return DB.records.filter(r=>r.memberId===mid&&r.dateEnd>=from&&r.dateStart<=to).sort((a,b)=>a.dateStart.localeCompare(b.dateStart));}
+function recSummary(rec){
+  const p=[];
+  if(rec.title)p.push(rec.title);
+  if(rec.location)p.push('📍'+rec.location);
+  if(rec.timeStr)p.push('🕐'+rec.timeStr);
+  if(rec.proxy){const pm=getMember(rec.proxy);if(pm)p.push('代理：'+pm.name);}
+  if(rec.extra)p.push(rec.extra);
+  return p.join('　');
 }
-
-// ====== 主畫面 ======
-function renderMain(){
-  const el = document.getElementById("app");
-
-  el.innerHTML = `
-    <h3>歡迎 ${currentUser.name}</h3>
-    <button onclick="renderIdentity()">切換身份</button>
-  `;
+// ════════════════ IDENTITY PICKER ════════════════
+function renderIdentityGrid(){
+  const g=document.getElementById('identity-grid');
+  g.innerHTML=DB.members.map(m=>
+    `<button class="member-pick-btn" id="mpb-${m.id}" onclick="pickIdentity('${m.id}')">
+      <span class="mpb-emoji">${m.emoji}</span>${m.name}
+    </button>`
+  ).join('');
 }
+function pickIdentity(id){
+  const m=getMember(id);if(!m)return;
+  currentUser=m;
+  document.querySelectorAll('.member-pick-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('mpb-'+id)?.classList.add('selected');
+  document.getElementById('btn-enter').disabled=false;
+}
+function enterApp(){
+  if(!currentUser)return;
+  document.getElementById('screen-identity').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('uc-emoji').textContent=currentUser.emoji;
+  document.getElementById('uc-name').textContent=currentUser.name;
+  document.getElementById('header-date').textContent=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  document.getElementById('admin-tab').style.display='none';
+  isAdmin=false;
+  renderOverview();renderCheckinInner();renderCalendar();renderHistory();updateLineUI();
+}
+function switchIdentity(){
+  isAdmin=false;
+  document.getElementById('admin-tab').style.display='none';
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-detail').classList.remove('active');
+  document.getElementById('screen-identity').classList.add('active');
+  currentUser=null;
+  document.querySelectorAll('.member-pick-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-enter').disabled=true;
+  // reset tabs
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.querySelectorAll('.tab-content').forEach((c,i)=>c.classList.toggle('active',i===0));
+}
+// ════════════════ TABS ════════════════
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='overview')renderOverview();
+  if(name==='checkin')renderCheckinInner();
+  if(name==='calendar')renderCalendar();
+  if(name==='history')renderHistory();
+  if(name==='admin')renderAdmin();
+}
+// ════════════════ OVERVIEW ════════════════
+function renderOverview(){
+  const today=todayStr();
+  const counts={};DB.statuses.forEach(s=>counts[s.id]=0);
+  DB.members.forEach(m=>recOnDate(m.id,today).forEach(r=>{counts[r.statusId]=(counts[r.statusId]||0)+1;}));
+  document.getElementById('overview-summary').innerHTML=
+    DB.statuses.map(s=>`<div class="summary-chip"><div class="dot" style="background:${s.color}"></div><span>${s.emoji} ${s.label}</span><strong>${counts[s.id]||0}</strong></div>`).join('');
+  const cards=document.getElementById('member-cards');
+  if(!DB.members.length){cards.innerHTML='<div class="empty-state"><div class="ei">👥</div>尚無成員</div>';return;}
+  cards.innerHTML=DB.members.map(m=>{
+    const recs=recOnDate(m.id,today);
+    const isSelf=currentUser&&m.id===currentUser.id;
+    const st=recs.length?getStatus(recs[0].statusId):null;
+    const bg=st?st.color+'20':'var(--bg)';
+    const borderColor=st?st.color:'var(--border)';
+    return `<div class="member-card" style="border-left-color:${borderColor}" onclick="openDetail('${m.id}')">
+      <div class="mc-top">
+        <div class="mc-avatar" style="background:${bg}">${m.emoji}</div>
+        <div>
+          <div class="mc-name">${m.name}${isSelf?'<span class="self-pill">我</span>':''}</div>
+          <div class="mc-code">${m.code}</div>
+        </div>
+      </div>
+      ${recs.length
+        ?recs.map(r=>{const s=getStatus(r.statusId);return `<span class="status-badge" style="background:${s?s.color+'20':'#eee'};color:${s?darken(s.color,50):'#888'}">${s?s.emoji:'?'} ${s?s.label:'未知'}</span>`;}).join(' ')
+        :`<span class="status-badge" style="background:#f0f0f0;color:#aaa">⚪ 今日無差勤</span>`}
+      <div class="mc-hint">點擊查看 7 日差勤規劃</div>
+    </div>`;
+  }).join('');
+}
+// ════════════════ DETAIL ════════════════
+function openDetail(mid){
+  detailMemberId=mid;
+  const m=getMember(mid);if(!m)return;
+  const isSelf=currentUser&&m.id===currentUser.id;
+  document.getElementById('detail-title').textContent=m.emoji+' '+m.name;
+  document.getElementById('detail-subtitle').textContent=m.code+(isSelf?' · 可更改或撤銷自己的紀錄':'');
+  renderDetailBody();
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-detail').classList.add('active');
+}
+function closeDetail(){
+  document.getElementById('screen-detail').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  renderOverview();
+}
+function renderDetailBody(){
+  const m=getMember(detailMemberId);if(!m)return;
+  const isSelf=currentUser&&m.id===currentUser.id;
+  const today=todayStr();
+  let html='';
+  for(let i=0;i<8;i++){
+    const date=addDays(today,i);
+    const recs=recOnDate(m.id,date);
+    const isToday=date===today;
+    const dayLabel=i===0?'今天':i===1?'明天':new Date(date+'T00:00:00').toLocaleDateString('zh-TW',{month:'short',day:'numeric',weekday:'short'});
+    html+=`<div class="day-block">
+      <div class="day-label">${dayLabel}${isToday?'<span class="today-pill">今日</span>':''}</div>`;
+    if(!recs.length){
+      html+=`<div class="no-rec">無差勤紀錄</div>`;
+    } else {
+      recs.forEach(rec=>{
+        const st=getStatus(rec.statusId);
+        const isMulti=rec.dateStart!==rec.dateEnd;
+        const summary=recSummary(rec);
+        html+=`<div class="record-row">
+          <div class="rec-icon">${st?st.emoji:'?'}</div>
+          <div class="rec-info">
+            <div class="rec-status" style="color:${st?darken(st.color,40):'#555'}">${st?st.label:'未知'}${rec.title?' <span style="font-size:11px;font-weight:400;color:var(--text2)">'+rec.title+'</span>':''}</div>
+            ${isMulti?`<div class="rec-dates">${fmtShort(rec.dateStart)} – ${fmtShort(rec.dateEnd)}</div>`:''}
+            ${summary?`<div class="rec-sub">${summary}</div>`:''}
+          </div>
+          ${isSelf?`<div class="rec-actions">
+            <button class="btn-rec edit" onclick="openEditRecord('${rec.id}')">更改</button>
+            <button class="btn-rec revoke" onclick="revokeRecord('${rec.id}')">撤銷</button>
+          </div>`:''}
+        </div>`;
+      });
+    }
+    html+='</div>';
+  }
+  if(isSelf) html+=`<button class="detail-add-btn" onclick="goCheckin()">＋ 新增差勤登記</button>`;
+  document.getElementById('detail-body').innerHTML=html;
+}
+function goCheckin(){
+  closeDetail();
+  setTimeout(()=>switchTab('checkin',document.querySelectorAll('.tab-btn')[1]),200);
+}
+// ════════════════ CHECKIN ════════════════
+function renderCheckinInner(){
+  const el=document.getElementById('checkin-inner');
+  if(!currentUser){
+    el.innerHTML=`<div class="no-identity-notice"><p>請先選擇你的名字，才能進行差勤登記。</p><button class="btn-pick-identity" onclick="switchIdentity()">選擇身份</button></div>`;
+    return;
+  }
+  ciStatusId=null; ciDateMode='single';
+  const today=todayStr();
+  const proxyOpts='<option value="">（無代理人）</option>'+DB.members.filter(m=>m.id!==currentUser.id).map(m=>`<option value="${m.id}">${m.emoji} ${m.name}（${m.code}）</option>`).join('');
+  const statusOpts=DB.statuses.map(s=>`<div class="st-opt" id="cso-${s.id}" style="color:${s.color}" onclick="ciPickStatus('${s.id}')"><span class="si">${s.emoji}</span><span class="sl">${s.label}</span></div>`).join('');
+  el.innerHTML=`<div class="checkin-card">
+    <div class="ci-who">
+      <div class="ci-who-avatar">${currentUser.emoji}</div>
+      <div class="ci-who-info">
+        <div class="ci-name">${currentUser.name}</div>
+        <div class="ci-code">員工代碼：${currentUser.code}</div>
+      </div>
+    </div>
+    <div id="ci-success-bar" style="display:none"></div>
+    <div class="form-label">差勤期間</div>
+    <div class="date-mode-toggle">
+      <button class="dmt-btn active" id="ci-m-s" onclick="setCiMode('single')">單日</button>
+      <button class="dmt-btn" id="ci-m-r" onclick="setCiMode('range')">多日區間</button>
+    </div>
+    <div id="ci-single-wrap" class="date-row">
+      <label>日期</label><input type="date" class="f-input" id="ci-ds" value="${today}" style="max-width:180px"/>
+    </div>
+    <div id="ci-range-wrap" class="date-row" style="display:none">
+      <label>開始</label><input type="date" class="f-input" id="ci-dstart" value="${today}" style="max-width:155px" onchange="syncCiEndDate()"/>
+      <label>結束</label><input type="date" class="f-input" id="ci-dend" value="${today}" style="max-width:155px"/>
+    </div>
+    <div class="form-label">差勤類別</div>
+    <div class="status-grid" id="ci-status-grid">${statusOpts}</div>
+    <div class="form-label">差勤資訊</div>
+    <div class="note-grid">
+      <input class="n-input" id="ci-title" placeholder="名稱 / 事由"/>
+      <input class="n-input" id="ci-location" placeholder="地點"/>
+      <input class="n-input" id="ci-time" placeholder="時間（09:00–17:00）"/>
+    </div>
+    <textarea class="n-textarea" id="ci-extra" rows="2" placeholder="其他備註（會議主題、任務說明⋯）"></textarea>
+    <div class="form-label">職務代理人</div>
+    <select class="proxy-sel" id="ci-proxy">${proxyOpts}</select>
+    <button class="btn-submit" onclick="doCheckin()"><span>📋</span> 儲存差勤登記</button>
+  </div>`;
+}
+function setCiMode(m){
+  ciDateMode=m;
+  document.getElementById('ci-m-s').classList.toggle('active',m==='single');
+  document.getElementById('ci-m-r').classList.toggle('active',m==='range');
+  document.getElementById('ci-single-wrap').style.display=m==='single'?'flex':'none';
+  document.getElementById('ci-range-wrap').style.display=m==='range'?'flex':'none';
+}
+function syncCiEndDate(){
+  // 當開始日期改變時，若結束日期早於開始日期，自動調整
+  const startEl=document.getElementById('ci-dstart');
+  const endEl=document.getElementById('ci-dend');
+  if(startEl&&endEl&&endEl.value<startEl.value){
+    endEl.value=startEl.value;
+  }
+}
+function ciPickStatus(id){
+  ciStatusId=id;
+  const grid=document.getElementById('ci-status-grid');
+  if(!grid)return;
+  grid.querySelectorAll('.st-opt').forEach(el=>{
+    const s=getStatus(el.id.replace('cso-',''));
+    const sel=el.id==='cso-'+id;
+    el.classList.toggle('selected',sel);
+    el.style.background=sel&&s?s.color+'18':'';
+    el.style.borderColor=sel&&s?s.color:'';
+  });
+}
+function doCheckin(){
+  if(!currentUser){toast('請先選擇身份');return;}
+  // ── 直接從 DOM 讀取所有值，不依賴全域變數，防止狀態殘留 ──
+  const rangeWrapEl=document.getElementById('ci-range-wrap');
+  const isRange=rangeWrapEl&&rangeWrapEl.style.display!=='none';
+  let ds,de;
+  if(!isRange){
+    const dsEl=document.getElementById('ci-ds');
+    ds=dsEl?dsEl.value:'';
+    de=ds;
+  } else {
+    const dstartEl=document.getElementById('ci-dstart');
+    const dendEl=document.getElementById('ci-dend');
+    ds=dstartEl?dstartEl.value:'';
+    de=dendEl?dendEl.value:'';
+  }
+  // 直接從 DOM 讀取已選狀態（不依賴 ciStatusId 全域變數）
+  const selectedOpt=document.querySelector('#ci-status-grid .st-opt.selected');
+  const statusId=selectedOpt?selectedOpt.id.replace('cso-',''):(ciStatusId||null);
+  if(!statusId){toast('請選擇差勤類別');return;}
+  if(!ds||!de){toast('請選擇日期');return;}
+  if(de<ds){toast('結束日期不可早於開始日期');return;}
+  // ── 強制重複檢查：逐日掃描，任何一天有衝突即擋住，不可儲存 ──
+  let dupDate='';
+  let dCur=new Date(ds+'T00:00:00');
+  const dEndDate=new Date(de+'T00:00:00');
+  while(dCur<=dEndDate){
+    const d=dCur.toISOString().slice(0,10);
+    const clash=DB.records.find(r=>r.memberId===currentUser.id&&r.dateStart<=d&&r.dateEnd>=d);
+    if(clash){dupDate=d;break;}
+    dCur.setDate(dCur.getDate()+1);
+  }
+  if(dupDate){
+    const clash=DB.records.find(r=>r.memberId===currentUser.id&&r.dateStart<=dupDate&&r.dateEnd>=dupDate);
+    const st=clash?getStatus(clash.statusId):null;
+    const stLabel=st?`${st.emoji} ${st.label}`:'差勤紀錄';
+    showDupModal(fmtShort(dupDate),stLabel);
+    return;
+  }
+  // ── 讀取其餘欄位並建立紀錄 ──
+  const titleEl=document.getElementById('ci-title');
+  const locEl=document.getElementById('ci-location');
+  const timeEl=document.getElementById('ci-time');
+  const extraEl=document.getElementById('ci-extra');
+  const proxyEl=document.getElementById('ci-proxy');
+  const rec={
+    id:uid(),memberId:currentUser.id,
+    dateStart:ds,dateEnd:de,statusId:statusId,
+    title:titleEl?titleEl.value.trim():'',
+    location:locEl?locEl.value.trim():'',
+    timeStr:timeEl?timeEl.value.trim():'',
+    extra:extraEl?extraEl.value.trim():'',
+    proxy:proxyEl?proxyEl.value:'',
+    createdAt:new Date().toISOString()
+  };
+  DB.records.push(rec);
+  const cut=new Date();cut.setDate(cut.getDate()-180);
+  DB.records=DB.records.filter(r=>new Date(r.dateEnd+'T00:00:00')>=cut);
+  save();
+  if(DB.lineToken){
+    const st=getStatus(rec.statusId);
+    const range=rec.dateStart===rec.dateEnd?fmtShort(rec.dateStart):`${fmtShort(rec.dateStart)}-${fmtShort(rec.dateEnd)}`;
+    sendLine(`${currentUser.emoji}${currentUser.name} 新增差勤：${st?st.emoji:''}${st?st.label:''}　${range}${rec.title?' '+rec.title:''}`);
+  }
+  // 記錄摘要資訊（rerenderCheckinInner 後才顯示）
+  const savedSt=getStatus(rec.statusId);
+  const savedRange=rec.dateStart===rec.dateEnd?fmtShort(rec.dateStart):`${fmtShort(rec.dateStart)}-${fmtShort(rec.dateEnd)}`;
+  const savedTitle=rec.title;
+  // ── 完整重新 render 表單，確保狀態乾淨，杜絕任何殘留 ──
+  ciStatusId=null;ciDateMode='single';
+  renderCheckinInner();
+  // 在新表單頂部顯示儲存成功摘要
+  const summaryBar=document.getElementById('ci-success-bar');
+  if(summaryBar){
+    summaryBar.innerHTML=`<div style="background:var(--accent-light);border:1.5px solid var(--accent);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">${savedSt?savedSt.emoji:'📋'}</span>
+      <div><div style="font-size:13px;font-weight:600;color:var(--accent)">${savedSt?savedSt.label:''} 已登記</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">${savedRange}${savedTitle?' · '+savedTitle:''}</div></div>
+    </div>`;
+    summaryBar.style.display='block';
+  }
+  toast('✅ 差勤登記已儲存！');
+}
+// ════════════════ EDIT / REVOKE RECORD ════════════════
+function openEditRecord(recId){
+  const rec=DB.records.find(r=>r.id===recId);if(!rec)return;
+  document.getElementById('er-id').value=recId;
+  const isRange=rec.dateStart!==rec.dateEnd;
+  setErMode(isRange?'range':'single');
+  document.getElementById('er-ds').value=rec.dateStart;
+  document.getElementById('er-dstart').value=rec.dateStart;
+  document.getElementById('er-dend').value=rec.dateEnd;
+  erStatusId=rec.statusId;renderErStatusGrid();
+  document.getElementById('er-title').value=rec.title||'';
+  document.getElementById('er-location').value=rec.location||'';
+  document.getElementById('er-time').value=rec.timeStr||'';
+  document.getElementById('er-extra').value=rec.extra||'';
+  const ep=document.getElementById('er-proxy');
+  ep.innerHTML='<option value="">（無代理人）</option>'+DB.members.filter(m=>m.id!==currentUser.id).map(m=>`<option value="${m.id}" ${rec.proxy===m.id?'selected':''}>${m.emoji} ${m.name}（${m.code}）</option>`).join('');
+  openModal('modal-edit-rec');
+}
+function setErMode(m){
+  erDateMode=m;
+  document.getElementById('er-m-s').classList.toggle('active',m==='single');
+  document.getElementById('er-m-r').classList.toggle('active',m==='range');
+  document.getElementById('er-single-wrap').style.display=m==='single'?'flex':'none';
+  document.getElementById('er-range-wrap').style.display=m==='range'?'flex':'none';
+}
+function renderErStatusGrid(){
+  document.getElementById('er-status-grid').innerHTML=DB.statuses.map(s=>
+    `<div class="st-opt ${erStatusId===s.id?'selected':''}" style="color:${s.color};${erStatusId===s.id?`background:${s.color}18;border-color:${s.color}`:''}" onclick="erPickStatus('${s.id}')">`+
+    `<span class="si">${s.emoji}</span><span class="sl">${s.label}</span></div>`
+  ).join('');
+}
+function erPickStatus(id){erStatusId=id;renderErStatusGrid();}
+function saveEditRecord(){
+  alert("尚未完成編輯功能");
+}
+function revokeRecord(recId){
+  // 找出這筆紀錄所涵蓋的日期，一併刪除同成員同日的所有紀錄（強制唯一）
+  const target=DB.records.find(r=>r.id===recId);
+  if(!target)return;
+  // 刪除：與 target 日期範圍重疊的同成員所有紀錄（包含 target 本身）
+  DB.records=DB.records.filter(r=>{
+    if(r.memberId!==target.memberId)return true;
+    // 若日期範圍有任何重疊則刪除
+    return r.dateEnd<target.dateStart||r.dateStart>target.dateEnd;
+  });
+  save();renderDetailBody();renderOverview();toast('✅ 差勤紀錄已刪除');
+}
+function showDupModal(dateStr, stLabel){
+  document.getElementById('dup-modal-date').textContent=dateStr;
+  document.getElementById('dup-modal-label').textContent=stLabel;
+  document.getElementById('modal-dup-warn').classList.add('open');
+}
+// ════════════════ CALENDAR ════════════════
+function setCalView(v){
+  calView=v;calOffset=0;
+  ['week','biweek','month'].forEach(k=>document.getElementById('vmt-'+k).classList.toggle('active',k===v));
+  renderCalendar();
+}
+function calNav(dir){calOffset+=dir;renderCalendar();}
+function setCalMemberFilter(id){calMemberFilter=id;renderCalendar();}
+function calSelectMember(id){calMemberFilter=id;document.getElementById('cal-search').value='';renderCalendar();}
+function calSearchFilter(){
+  const q=document.getElementById('cal-search').value.trim().toLowerCase();
+  if(!q){return;}
+  const found=DB.members.find(m=>m.name.toLowerCase().includes(q)||m.code.toLowerCase().includes(q));
+  if(found){
+    calMemberFilter=found.id;
+    document.getElementById('cal-member-select').value=found.id;
+    renderCalendar();
+  }
+}
+function renderCalendar(){
+  const today=new Date(),tStr=todayStr();
+  // Update dropdown options
+  const sel=document.getElementById('cal-member-select');
+  if(sel){
+    const prev=sel.value;
+    sel.innerHTML='<option value="all">👥 全部成員</option>'+
+      DB.members.map(m=>`<option value="${m.id}">${m.emoji} ${m.name}（${m.code}）</option>`).join('');
+    sel.value=prev||calMemberFilter;
+    if(sel.value!==prev)sel.value=calMemberFilter;
+  }
+  const show=calMemberFilter==='all'?DB.members:DB.members.filter(m=>m.id===calMemberFilter);
+  if(calView==='month'){renderMonthCalendar(show,today,tStr);}
+  else{renderWeekCalendar(show,today,tStr);}
+}
+function renderWeekCalendar(show,today,tStr){
+  const numDays=calView==='week'?7:14;
+  // Week starts Monday
+  const ws=new Date(today);
+  const dow=today.getDay()||7; // 1=Mon…7=Sun
+  ws.setDate(today.getDate()-(dow-1)+calOffset*numDays);
+  const days=Array.from({length:numDays},(_,i)=>{const d=new Date(ws);d.setDate(ws.getDate()+i);return d;});
+  const we=days[days.length-1];
+  document.getElementById('cal-nav-label').textContent=
+    `${days[0].toLocaleDateString('zh-TW',{month:'short',day:'numeric'})} – ${we.toLocaleDateString('zh-TW',{month:'short',day:'numeric'})}`;
+  const dayNames=['一','二','三','四','五','六','日'];
+  const nameW=58;
+  let html=`<div class="cal-grid"><div class="cal-grid-header" style="grid-template-columns:${nameW}px repeat(${numDays},1fr)">
+    <div class="cal-hcell"></div>`;
+  days.forEach((d,i)=>{const it=d.toISOString().slice(0,10)===tStr;const dn=dayNames[(d.getDay()+6)%7];
+    html+=`<div class="cal-hcell ${it?'today-col':''}"><div>${dn}</div><div style="font-size:12px;font-weight:700">${d.getDate()}</div></div>`;});
+  html+='</div>';
+  show.forEach(m=>{
+    html+=`<div class="cal-grid-row" style="grid-template-columns:${nameW}px repeat(${numDays},1fr)">
+      <div class="cal-name-cell"><span style="font-size:18px;display:block;text-align:center;line-height:1.2">${m.emoji}</span><span style="font-size:9px;display:block;text-align:center;word-break:break-all;white-space:normal;line-height:1.3;margin-top:2px">${m.name}</span></div>`;
+    days.forEach(d=>{
+      const ds=d.toISOString().slice(0,10);
+      const recs=recOnDate(m.id,ds);
+      const it=ds===tStr;
+      const st=recs.length?getStatus(recs[0].statusId):null;
+      html+=`<div class="cal-cell ${it?'today-cell':''}">`;
+      if(st){html+=`<div class="cal-label" style="background:${st.color}20;color:${darken(st.color,30)}" title="${st.label}${recs[0].title?' - '+recs[0].title:''}">${st.emoji}<br><span style="font-size:9px;white-space:normal;word-break:break-all">${st.label}</span></div>`;}
+      else{html+=`<div style="width:4px;height:4px;border-radius:50%;background:var(--border)"></div>`;}
+      html+=`</div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  document.getElementById('cal-body').innerHTML=html;
+}
+function renderMonthCalendar(show,today,tStr){
+  const pivot=new Date(today.getFullYear(),today.getMonth()+calOffset,1);
+  document.getElementById('cal-nav-label').textContent=pivot.toLocaleDateString('zh-TW',{year:'numeric',month:'long'});
+  const year=pivot.getFullYear(),month=pivot.getMonth();
+  const firstDay=new Date(year,month,1);
+  const lastDay=new Date(year,month+1,0);
+  // start grid from Monday before first day
+  const startDow=(firstDay.getDay()+6)%7; // 0=Mon
+  const gridStart=new Date(firstDay);gridStart.setDate(firstDay.getDate()-startDow);
+  const endDow=(lastDay.getDay()+6)%7;
+  const gridEnd=new Date(lastDay);gridEnd.setDate(lastDay.getDate()+(6-endDow));
+  const dayNames=['一','二','三','四','五','六','日'];
+  let html=`<div class="month-grid">
+    <div class="month-header-row">${dayNames.map(d=>`<div class="month-hdcell">${d}</div>`).join('')}</div>
+    <div class="month-body">`;
+  let cur=new Date(gridStart);
+  while(cur<=gridEnd){
+    html+=`<div class="month-week-row">`;
+    for(let i=0;i<7;i++){
+      const ds=cur.toISOString().slice(0,10);
+      const isToday=ds===tStr;
+      const isOther=cur.getMonth()!==month;
+      const dayNum=cur.getDate();
+      const numHtml=isToday?`<span class="mdc-num today-num">${dayNum}</span>`:`<span class="mdc-num">${dayNum}</span>`;
+      let evtsHtml='';
+      if(!isOther){
+        const displayMembers=calMemberFilter==='all'?show:show.filter(m=>m.id===calMemberFilter);
+        displayMembers.forEach(m=>{
+          const recs=recOnDate(m.id,ds);
+          recs.forEach(rec=>{
+            const st=getStatus(rec.statusId);
+            if(st) evtsHtml+=`<span class="month-event-dot" style="background:${st.color}22;color:${darken(st.color,30)}" title="${m.name}: ${st.label}${rec.title?' - '+rec.title:''}">${st.emoji} ${calMemberFilter==='all'?m.name.slice(0,2):st.label.slice(0,4)}</span>`;
+          });
+        });
+      }
+      html+=`<div class="month-day-cell ${isToday?'today-day':''} ${isOther?'other-month':''}">${numHtml}${evtsHtml}</div>`;
+      cur.setDate(cur.getDate()+1);
+    }
+    html+=`</div>`;
+  }
+  html+='</div></div>';
+  document.getElementById('cal-body').innerHTML=html;
+}
+// ════════════════ HISTORY ════════════════
+function renderHistory(){
+  const ms=document.getElementById('hist-m'),cm=ms.value;
+  ms.innerHTML='<option value="">全部成員</option>'+DB.members.map(m=>`<option value="${m.id}" ${cm===m.id?'selected':''}>${m.emoji} ${m.name}（${m.code}）</option>`).join('');
+  const ss=document.getElementById('hist-s'),cs=ss.value;
+  ss.innerHTML='<option value="">全部狀態</option>'+DB.statuses.map(s=>`<option value="${s.id}" ${cs===s.id?'selected':''}>${s.emoji} ${s.label}</option>`).join('');
+  const range=parseInt(document.getElementById('hist-r').value);
+  const cut=new Date();cut.setDate(cut.getDate()-range);
+  const cutStr=cut.toISOString().slice(0,10);
+  let recs=DB.records.filter(r=>r.dateEnd>=cutStr);
+  if(cm)recs=recs.filter(r=>r.memberId===cm);
+  if(cs)recs=recs.filter(r=>r.statusId===cs);
+  recs.sort((a,b)=>b.dateStart.localeCompare(a.dateStart));
+  const list=document.getElementById('history-list');
+  if(!recs.length){list.innerHTML='<div class="empty-state"><div class="ei">🗂</div>查無紀錄</div>';return;}
+  list.innerHTML=recs.map(r=>{
+    const m=getMember(r.memberId),st=getStatus(r.statusId);
+    const isMulti=r.dateStart!==r.dateEnd;
+    const summary=recSummary(r);
+    return `<div class="hist-entry">
+      <span style="font-size:21px">${m?m.emoji:'?'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${m?m.name:'已刪除'} <span style="font-size:10px;color:var(--text3);font-family:'DM Sans',sans-serif">${m?m.code:''}</span></div>
+        <span class="status-badge" style="background:${st?st.color+'20':'#eee'};color:${st?darken(st.color,50):'#888'};margin-top:3px">${st?st.emoji:'?'} ${st?st.label:'未知'}</span>
+        <div style="font-size:11px;color:var(--accent2);font-family:'DM Sans',sans-serif;margin-top:3px">${isMulti?fmtShort(r.dateStart)+' – '+fmtShort(r.dateEnd):fmtDate(r.dateStart)}</div>
+        ${summary?`<div style="font-size:11px;color:var(--text2);margin-top:3px;line-height:1.65">${summary}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+// ════════════════ ADMIN PIN ════════════════
+function openAdminPin(){
+  if(isAdmin){
+    // toggle off
+    isAdmin=false;
+    document.getElementById('admin-tab').style.display='none';
+    // switch back to overview if on admin tab
+    const adminContent=document.getElementById('tab-admin');
+    if(adminContent.classList.contains('active')){
+      switchTab('overview',document.querySelectorAll('.tab-btn')[0]);
+    }
+    toast('已退出管理模式');return;
+  }
+  apBuf='';updateApDisplay();
+  document.getElementById('ap-err').textContent='';
+  openModal('modal-admin-pin');
+}
+function closeAdminPin(){apBuf='';updateApDisplay();closeModal('modal-admin-pin');}
+function apPin(d){
+  if(apBuf.length>=6)return;
+  apBuf+=d;updateApDisplay();
+  if(apBuf.length===6){
+    setTimeout(()=>{
+      if(apBuf===DB.adminPin){
+        isAdmin=true;
+        document.getElementById('admin-tab').style.display='';
+        closeModal('modal-admin-pin');
+        toast('✅ 已進入管理模式');
+        renderAdmin();
+      } else {
+        document.getElementById('ap-err').textContent='PIN 錯誤，請重試';
+        apBuf='';updateApDisplay();
+      }
+    },120);
+  }
+}
+function apDel(){apBuf=apBuf.slice(0,-1);updateApDisplay();document.getElementById('ap-err').textContent='';}
+function updateApDisplay(){
+  for(let i=0;i<6;i++){const el=document.getElementById('ap'+i);el.textContent=i<apBuf.length?'●':'';el.classList.toggle('filled',i<apBuf.length);}
+}
+// ════════════════ ADMIN ════════════════
+function renderAdmin(){
+  if(!isAdmin)return;
+  document.getElementById('admin-member-list').innerHTML=DB.members.map(m=>
+    `<div class="admin-member-row">
+      <div class="admin-member-info">
+        <span style="font-size:21px">${m.emoji}</span>
+        <div><div style="font-size:13px;font-weight:600">${m.name} <span style="font-size:10px;color:var(--text2);font-family:'DM Sans',sans-serif">${m.code}</span></div></div>
+      </div>
+      <div class="admin-btns">
+        <button class="btn-sm" onclick="editMemberModal('${m.id}')">編輯</button>
+        <button class="btn-sm danger" onclick="deleteMember('${m.id}')">刪除</button>
+      </div>
+    </div>`
+  ).join('');
+  document.getElementById('admin-status-list').innerHTML=DB.statuses.map(s=>
+    `<div class="st-admin-row">
+      <div class="color-wrap"><div class="color-circle" style="background:${s.color}"></div>
+        <input type="color" value="${s.color}" oninput="updateStColor('${s.id}',this.value)"></div>
+      <span style="font-size:19px">${s.emoji}</span>
+      <span style="flex:1;font-size:13px;font-weight:500">${s.label}</span>
+      <button class="btn-sm danger" onclick="deleteSt('${s.id}')">刪除</button>
+    </div>`
+  ).join('');
+  document.getElementById('admin-pin-hint').textContent=DB.adminPin?'已設定（'+DB.adminPin.length+'位）':'未設定';
+  if(DB.lineToken)document.getElementById('line-token-input').placeholder='已設定 Token（●●●●●●）';
+}
+function addMember(){
+  const code=document.getElementById('nm-code').value.trim().toUpperCase();
+  const name=document.getElementById('nm-name').value.trim();
+  const emoji=document.getElementById('nm-emoji').value.trim()||'👤';
+  if(!code||!name){toast('請輸入代碼和姓名');return;}
+  if(getMemberByCode(code)){toast('此代碼已存在');return;}
+  DB.members.push({id:'m'+Date.now(),code,name,emoji});
+  save();['nm-code','nm-name','nm-emoji'].forEach(id=>document.getElementById(id).value='');
+  renderAdmin();renderOverview();renderIdentityGrid();toast('✅ 成員已新增');
+}
+function editMemberModal(id){
+  const m=getMember(id);if(!m)return;
+  document.getElementById('em-id').value=id;
+  document.getElementById('em-code').value=m.code;
+  document.getElementById('em-name').value=m.name;
+  document.getElementById('em-emoji').value=m.emoji;
+  openModal('modal-edit-member');
+}
+function saveEditMember(){
+  const id=document.getElementById('em-id').value,m=getMember(id);if(!m)return;
+  const nc=document.getElementById('em-code').value.trim().toUpperCase();
+  if(nc&&nc!==m.code&&getMemberByCode(nc)){toast('此代碼已存在');return;}
+  m.code=nc||m.code;m.name=document.getElementById('em-name').value.trim()||m.name;m.emoji=document.getElementById('em-emoji').value.trim()||m.emoji;
+  save();closeModal('modal-edit-member');renderAdmin();renderOverview();renderIdentityGrid();toast('✅ 成員已更新');
+}
+function deleteMember(id){
+  if(!confirm('確定刪除此成員？其差勤紀錄也將一併移除。'))return;
+  DB.members=DB.members.filter(m=>m.id!==id);DB.records=DB.records.filter(r=>r.memberId!==id);
+  save();renderAdmin();renderOverview();renderIdentityGrid();toast('成員已刪除');
+}
+function addStatus(){
+  const emoji=document.getElementById('ns-emoji').value.trim()||'🔘';
+  const label=document.getElementById('ns-label').value.trim();
+  const color=document.getElementById('ns-color').value;
+  if(!label){toast('請輸入狀態名稱');return;}
+  DB.statuses.push({id:'sc'+Date.now(),emoji,label,color});
+  save();document.getElementById('ns-emoji').value='';document.getElementById('ns-label').value='';
+  renderAdmin();renderOverview();renderCheckinInner();toast('✅ 狀態已新增');
+}
+function updateStColor(id,color){const s=getStatus(id);if(s){s.color=color;save();renderOverview();renderCalendar();}}
+function deleteSt(id){if(!confirm('確定刪除此狀態？'))return;DB.statuses=DB.statuses.filter(s=>s.id!==id);save();renderAdmin();renderOverview();renderCheckinInner();toast('狀態已刪除');}
+function saveAdminPin(){
+  const p1=document.getElementById('new-admin-pin').value.trim();
+  const p2=document.getElementById('new-admin-pin2').value.trim();
+  if(p1.length!==6||!/^\d+$/.test(p1)){toast('PIN 需為 6 位數字');return;}
+  if(p1!==p2){toast('兩次輸入不一致');return;}
+  DB.adminPin=p1;save();
+  document.getElementById('new-admin-pin').value='';document.getElementById('new-admin-pin2').value='';
+  renderAdmin();toast('✅ 管理者 PIN 已更新');
+}
+// ════════════════ LINE NOTIFY ════════════════
+function updateLineUI(){
+  const on=!!DB.lineToken;
+  ['line-dot','line-dot2'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.toggle('on',on);});
+  ['line-status-text','line-status-text2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=on?'已連結 Line Notify':'尚未連結';});
+}
+function saveLineToken(){const t=document.getElementById('line-token-input').value.trim();if(!t){toast('請輸入 Token');return;}DB.lineToken=t;save();document.getElementById('line-token-input').value='';document.getElementById('line-token-input').placeholder='已設定 Token（●●●●●●）';updateLineUI();toast('✅ Line Notify 已設定');}
+function saveLineToken2(){const t=document.getElementById('line-token2').value.trim();if(!t){toast('請輸入 Token');return;}DB.lineToken=t;save();document.getElementById('line-token2').value='';updateLineUI();toast('✅ Line Notify 已設定');}
+function sendLine(msg){if(!DB.lineToken)return;console.log('[Line Notify]',msg);toast('📨 Line 通知已發送（模擬）');}
+function testLine(){if(!DB.lineToken){toast('請先設定 Token');return;}sendLine('【誰有上班】測試通知 ✅');}
+function sendReport(){
+  if(!DB.lineToken){toast('請先設定 Token');return;}
+  const today=todayStr();let msg=`【誰有上班】📋 今日差勤 ${fmtDate(today)}\n`;
+  DB.members.forEach(m=>{const recs=recOnDate(m.id,today);
+    if(recs.length)recs.forEach(r=>{const st=getStatus(r.statusId);msg+=`${m.emoji}${m.name}：${st?st.emoji+st.label:'?'}${r.title?' '+r.title:''}\n`;});
+    else msg+=`${m.emoji}${m.name}：無差勤\n`;});
+  sendLine(msg);
+}
+function openNotifyModal(){updateLineUI();openModal('modal-notify');}
+// ════════════════ INIT ════════════════
+renderIdentityGrid();
 
-// ====== 啟動 ======
-window.onload = init;
+window.onload = function () {
+  renderIdentityGrid();
+};
 </script>
+<script>
+(function() {
+    console.log("正在嘗試掛載 Firebase 同步邏輯...");
 
-</body>
-</html>
+    // 1. 定義同步函數
+    function syncToFirebase() {
+        if (typeof DB !== 'undefined' && typeof database !== 'undefined') {
+            database.ref('attendance_data').set(DB)
+                .then(() => console.log("✅ Firebase 同步成功"))
+                .catch(err => console.error("❌ Firebase 儲存失敗:", err));
+        }
+    }
+
+    // 2. 攔截原本的 save 函數
+    const oldSave = window.save;
+    window.save = function() {
+        if (typeof oldSave === 'function') oldSave(); // 執行舊邏輯
+        syncToFirebase(); // 執行 Firebase 同步
+    };
+
+    // 3. 監聽 Firebase 變動
+    if (typeof database !== 'undefined') {
+        database.ref('attendance_data').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                window.DB = data;
+                console.log("📥 已從雲端更新資料");
+                
+                // 嘗試觸發畫面重繪
+                const renderFuncs = ['init', 'renderMembers', 'updateLineUI', 'renderRecords'];
+                renderFuncs.forEach(funcName => {
+                    if (typeof window[funcName] === 'function') window[funcName]();
+                });
+            }
+        });
+    } else {
+        console.error("❌ 錯誤：找不到 Firebase database 物件，請檢查第二步與第三步是否正確。");
+    }
+})();
+</script>
